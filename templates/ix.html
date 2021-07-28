@@ -4,24 +4,41 @@
 <div class="container">
   <div class="row">
     <div class="col">
-  
+
       <br/>
       
-      <h2>Peering DB Counts and Totals</h2>
-
-
+      <div class="col-md-auto">
+        <br>
+        
+        <h2>Internet Exchanges (by Total Peerings)</h2>
+        <h5>Total: {{total_ixs}}</h5>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Exchange Name</th>
+              <th>Region</th>
+              <th>Country</th>
+              <th>Total Peerings</th>
+              <th>Net Count</th>
+              <th>Aggregate Speed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in all_ixs %}
+            <tr>
+              <td><a href="/ix/{{ row['id'] }}">{{ row['name'] }}</a></td>
+              <td>{{ row['region_continent'] }}</td>
+              <td>{{ row['country'] }}</td>
+              <td>{{ row['total_peerings'] }}</td>
+              <td>{{ row['net_count'] }}</td>
+              <td>{{ row['total_speed'] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
     </div>
 
-    <div class="col">
-    
-      <br>
-    
-      <h2>Top Exchanges</h2>
 
-      <br>
-    
-      <h2>Top Nets</h2>
-  
     </div>
   </div>
 </div>

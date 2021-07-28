@@ -9,6 +9,18 @@ It was my attempt to practice flask, python, sqlite, html, css, etc. It's been a
 
 The app is running on flask, backed by a local sqlite3 database. The database gets populated by the python requests library pulling data down from the peeringdb API. The webpage doesn't pull from the peeringdb API directly in order to increase response time.
 
+## Goals Of This App
+
+list of all the public peerings grouped by peering exchange point name
+total peering's
+total unique organization peering's
+total aggregate speed
+other useful information
+
+database backend
+web frontend
+automated code testing
+AWS or cloud
 
 ## Building the Environment
 
@@ -27,6 +39,20 @@ SELECT * FROM ix
 ORDER BY name COLLATE NOCASE;
 ```
 
+```sql
+SELECT ix.id,
+       ix.name,
+       net_count,
+       region_continent,
+       country,
+       sum(speed) AS total_speed,
+       count(netixlan.id) AS total_peerings
+FROM ix
+LEFT JOIN netixlan on netixlan.ix_id=ix.id
+GROUP BY ix.id
+ORDER BY total_peerings DESC;
+```
+
 ### PEERING LISTS 
 
 
@@ -34,9 +60,11 @@ ORDER BY name COLLATE NOCASE;
 ```sql
 SELECT * FROM netixlan 
 LEFT JOIN net ON net.id=netixlan.net_id
-WHERE netixlan.name='AMS-IX'
+WHERE ix_id=26
 ORDER BY net.name COLLATE NOCASE;
+```
 
+```sql
 SELECT netixlan.name AS ix_name,
        net.name AS net_name,
        asn,
@@ -64,7 +92,7 @@ WHERE net.asn=46489;
 ```sql
 SELECT * FROM ix 
 ORDER BY net_count DESC 
-LIMIT 10;
+LIMIT 20;
 ```
 
 #### NET with most peers

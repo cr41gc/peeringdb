@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container">
+  <div class="row">
+    <div class="col">
+
+      <br/>
+      
+      <div class="col-md-auto">
+        <br>
+        
+        <h2>{{ ix_info['name'] }}</h2>
+        
+        <br>
+
+        <h5>Peered Networks: {{ ix_info['net_count'] }}</h5>
+        <h5>Region: {{ ix_info['region_continent'] }}</h5>
+        <h5>Country: {{ ix_info['country'] }}</h5>
+        <h5>Aggregate Speed: {{ ix_info['total_speed'] }}</h5>
+        <h5>Total Peerings: {{ ix_info['total_peerings'] }}</h5>
+        <br>
+        <h3>Peerings</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Net Name</th>
+              <th>ASN</th>
+              <th>Speed</th>
+              <th>IPv4 Address</th>
+              <th>IPv6 Address</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in ix_peerings %}
+            <tr>
+              <td><a href="/net/{{ row['asn'] }}">{{ row['name'] }}</a></td>
+              <td>{{ row['asn'] }}</td>
+              <td>{{ row['speed'] }}</td>
+              <td>{{ row['ipaddr4'] }}</td>
+              <td>{{ row['ipaddr6'] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+    </div>
+
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}

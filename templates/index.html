@@ -2,28 +2,58 @@
   {% block content %}
 <div class="container">
   <div class="row">
-    <div class="col">
-  
-      <br/>
-      
-      <h2>Peering DB Counts and Totals</h2>
-      <h3>Total IXs: <a href="{{ url_for('ix') }}">{{ total_ixs }}</a></h3>
-      <h3>Total Nets: <a href="{{ url_for('net') }}">{{ total_nets }}</a></h3>
-      <h3>Total Peerings: <a href="{{ url_for('peering') }}">{{ total_peerings }}</a></h3>
-      <h3>Total Speed: <a href="{{ url_for('peering') }}">{{ total_speed }}</a></h3>
 
+    <div class="col-2">
+      <br>
+      <h3>Counts and Totals</h3>
+      <h6>Total Exchanges: <a href="{{ url_for('ix') }}">{{ total_ixs }}</a></h6>
+      <h6>Total Nets: <a href="{{ url_for('net') }}">{{ total_nets }}</a></h6>
+      <h6>Total Peerings: {{ total_peerings }}</h6>
+      <h6>Total Speed: {{ total_speed }}</h6>
     </div>
 
-    <div class="col">
-    
+    <div class="col-md-auto">
       <br>
-    
-      <h2>Top Exchanges</h2>
-
-      <br>
-    
       <h2>Top Nets</h2>
-  
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Net Name</th>
+            <th>ASN</th>
+            <th>Peering Count</th>
+          </tr>
+        </thead>
+          <tbody>
+            {% for row in top_nets %}
+            <tr>
+              <td><a href="/net/{{ row['asn'] }}">{{ row['name'] }}</a></td>
+              <td>{{ row['asn'] }}</td>
+              <td>{{ row['peer_count'] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+      </table>
+    </div>
+
+    <div class="col-md-auto">
+      <br>
+      <h2>Top Exchanges</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Exchange Name</th>
+            <th>Peering Count</th>
+          </tr>
+        </thead>
+          <tbody>
+            {% for row in top_ixs %}
+            <tr>
+              <td><a href="/ix/{{ row['id'] }}">{{ row['name'] }}</a></td>
+              <td>{{ row['peer_count'] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+      </table>
     </div>
   </div>
 </div>

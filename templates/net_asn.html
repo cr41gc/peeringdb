@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container">
+  <div class="row">
+    <div class="col">
+
+      <br/>
+      
+      <div class="col-md-auto">
+        <br>
+        
+        <h2>{{ net_info['name'] }}</h2>
+        
+        <br>
+
+        <h5>Number of Exchange Presence: {{ net_info['ix_num'] }}</h5>
+        <h5>Number of Peerings: {{ net_info['peering_num'] }}</h5>
+        <h5>Total Peering Speed: {{ net_info['total_speed'] }}</h5>
+        <h5>Number of Countries: {{ net_info['country_count'] }}</h5>
+        <h5>Number of Regions: {{ net_info['reg_count'] }}</h5>
+        <br>
+        <h3>Peerings Per Country</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Peering Count</th>
+              <th>Country</th>
+              <th>Region</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in net_region %}
+            <tr>
+              <td>{{ row['peering_count'] }}</td>
+              <td>{{ row['country'] }}</td>
+              <td>{{ row['region_continent'] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <br>
+        <h3>Peerings</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Exchange Name</th>
+              <th>Speed</th>
+              <th>IPv4 Address</th>
+              <th>IPv6 Address</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in net_peers %}
+            <tr>
+              <td><a href="/ix/{{ row['ix_id'] }}">{{ row['ix_name'] }}</a></td>
+              <td>{{ row['speed'] }}</td>
+              <td>{{ row['ipaddr4'] }}</td>
+              <td>{{ row['ipaddr6'] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+    </div>
+
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
