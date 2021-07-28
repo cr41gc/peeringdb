@@ -1,0 +1,15 @@
+PeeringDB Requirements
+
+list of all the public peerings grouped by peering exchange point name
+total peering's
+total unique organization peering's
+total aggregate speed
+other useful information
+
+database backend
+web frontend
+automated code testing
+AWS or cloud
+
+
+
