@@ -8,6 +8,7 @@ DATABASE = 'peering.db'
 
 app = Flask(__name__)
 
+
 @app.route("/")
 def index():
 
@@ -23,10 +24,7 @@ def index():
     total_peerings = r['total_peerings']
 
     r = query_db("SELECT sum(speed) AS total_speed FROM netixlan", one=True)
-    total_speed = r['total_speed']
-
-    r = query_db("SELECT sum(speed) AS total_speed FROM netixlan", one=True)
-    total_speed = r['total_speed']
+    total_speed = format_speed(r['total_speed'])
 
     top_nets = query_db("""
         SELECT net.name AS name, 
@@ -80,6 +78,8 @@ def ix():
         GROUP BY ix.id
         ORDER BY total_peerings DESC;
     """)
+    for row in all_ixs:
+        row['total_speed']=format_speed(row['total_speed'])
 
     return render_template("ix.html", total_ixs=total_ixs,
                                       all_ixs=all_ixs)
@@ -98,6 +98,7 @@ def ix_id(ix_id):
         LEFT JOIN netixlan on netixlan.ix_id=ix.id
         WHERE ix.id={ix_id};
     """, one=True)
+    ix_info['total_speed']=format_speed(ix_info['total_speed'])
 
     ix_peerings = query_db(f"""
         SELECT net.name,
@@ -110,6 +111,8 @@ def ix_id(ix_id):
         WHERE ix_id={ix_id}
         ORDER BY net.name COLLATE NOCASE;
     """)
+    for row in ix_peerings:
+        row['speed']=format_speed(row['speed'])
 
     return render_template("ix_id.html", ix_info=ix_info,
                                          ix_peerings=ix_peerings) 
@@ -129,12 +132,16 @@ def net():
                asn,
                count(DISTINCT netixlan.ix_id) AS ix_count,
                count(netixlan.id) AS peer_count, 
-               sum(speed) AS total_speed 
+               sum(speed) AS total_speed,
+               count(DISTINCT country) AS total_countries
         FROM net
         LEFT JOIN netixlan ON net.id=netixlan.net_id
+        LEFT JOIN ix on netixlan.ix_id=ix.id
         GROUP BY net.name
         ORDER BY peer_count DESC LIMIT 500;
     """)
+    for row in all_nets:
+        row['total_speed']=format_speed(row['total_speed'])
 
     return render_template("net.html", total_nets=total_nets,
                                        all_nets=all_nets)
@@ -154,6 +161,7 @@ def net_asn(asn):
         LEFT JOIN ix ON netixlan.ix_id=ix.id
         WHERE asn={asn};
     """, one=True)
+    net_info['total_speed']=format_speed(net_info['total_speed'])
 
     net_region = query_db(f"""
         SELECT COUNT(netixlan.id) AS peering_count, 
@@ -178,6 +186,8 @@ def net_asn(asn):
         WHERE asn={asn}
         ORDER BY ix_name COLLATE NOCASE;
     """)
+    for row in net_peers:
+        row['speed']=format_speed(row['speed'])
 
     return render_template("net_asn.html", net_info=net_info,
                                            net_region=net_region,
@@ -190,11 +200,17 @@ def init_db():
             db.cursor().executescript(f.read())
         db.commit()
 
+def dict_factory(cursor, row):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
+
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         db = g._database = sqlite3.connect(DATABASE)
-        db.row_factory = sqlite3.Row
+        db.row_factory = dict_factory
     return db
 
 @app.teardown_appcontext
@@ -208,4 +224,20 @@ def query_db(query, args=(), one=False):
     rv = cur.fetchall()
     cur.close()
     return (rv[0] if rv else None) if one else rv
+
+
+def format_speed(speed):
+    if not speed:
+        return speed
+    n = 0
+    label = {0: 'M', 1: 'G', 2: 'T', 3: 'P'}
+    while speed >= 1000:
+        speed /= 1000
+        n += 1
+    if speed == int(speed):
+        speed = int(speed)
+    else:
+        speed=round(speed,1)
+    return f"{speed}{label[n]}"
+
 
