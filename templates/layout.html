@@ -32,6 +32,12 @@
 
     {% block content %}
     {% endblock %}
+    <br>
+    <div class="container">
+      <div class="row">
+          <p class="fw-lighter">DB last updated: <a class="link-secondary" href="{{ url_for('populate_db') }}">{{ dbtime }}</a></p>
+      </div>
+    </div>
 
    <script src="{{ url_for('static', filename='bootstrap.js') }}" ></script>
 
