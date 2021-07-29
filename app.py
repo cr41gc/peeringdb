@@ -1,5 +1,7 @@
 import sqlite3
 import requests
+from urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
 from datetime import datetime
 from flask import Flask
 from flask import g
@@ -211,49 +213,65 @@ def net_asn(asn):
 def populate_db():
     init_db()
 
+    s = requests.Session()
+    retries = Retry(total=5,
+                    backoff_factor=0.1,
+                    status_forcelist=[ 500, 502, 503, 504 ])
+    s.mount('https://', HTTPAdapter(max_retries=retries))
+
+    db_updated = False
+
     # Get all internet exchanges
-    ix_r = requests.get(API_URL+"ix").json()
-    query_db("DELETE FROM ix")
-    for ix in ix_r['data']:
-        query_db(f"""
-            INSERT INTO ix VALUES (
-                {ix['id']},
-                '{ix['name'].replace("'","")}',
-                {ix['net_count']},
-                '{ix['region_continent'].replace("'","")}',
-                '{ix['country'].replace("'","")}'
-            )
-        """)
+    ix_r = s.get(API_URL+"ix").json()
+    if ix_r:
+        db_updated = True
+        query_db("DELETE FROM ix")
+        for ix in ix_r['data']:
+            query_db(f"""
+                INSERT INTO ix VALUES (
+                    {ix['id']},
+                    '{ix['name'].replace("'","")}',
+                    {ix['net_count']},
+                    '{ix['region_continent'].replace("'","")}',
+                    '{ix['country'].replace("'","")}'
+                )
+            """)
 
     # Get all NETs (ASNs)
-    net_r = requests.get("https://www.peeringdb.com/api/net").json()
-    query_db("DELETE FROM net")
-    for net in net_r['data']:
-        query_db(f"""
-            INSERT INTO net VALUES (
-                {net['id']}, 
-               '{net['name'].replace("'","")}', 
-                {net['asn']}
-            )
-        """)
+    net_r = s.get("https://www.peeringdb.com/api/net").json()
+    if net_r:
+        db_updated = True
+        query_db("DELETE FROM net")
+        for net in net_r['data']:
+            query_db(f"""
+                INSERT INTO net VALUES (
+                    {net['id']}, 
+                   '{net['name'].replace("'","")}', 
+                    {net['asn']}
+                )
+            """)
 
     # Get all IX Peers
-    peer_r = requests.get("https://www.peeringdb.com/api/netixlan").json()
-    query_db("DELETE FROM netixlan")
-    for netixlan in peer_r['data']:
-        query_db(f"""
-            INSERT INTO netixlan VALUES (
-                {netixlan['id']},
-                {netixlan['net_id']},
-                {netixlan['ix_id']},
-               '{netixlan['name'].replace("'","")}',
-                {netixlan['speed']},
-               '{netixlan['ipaddr4']}',
-               '{netixlan['ipaddr6']}'
-            )
-        """)
+    peer_r = s.get("https://www.peeringdb.com/api/netixlan").json()
+    if peer_r:
+        db_updated = True
+        query_db("DELETE FROM netixlan")
+        for netixlan in peer_r['data']:
+            query_db(f"""
+                INSERT INTO netixlan VALUES (
+                    {netixlan['id']},
+                    {netixlan['net_id']},
+                    {netixlan['ix_id']},
+                   '{netixlan['name'].replace("'","")}',
+                    {netixlan['speed']},
+                   '{netixlan['ipaddr4']}',
+                   '{netixlan['ipaddr6']}'
+                )
+            """)
 
-    query_db(f"INSERT INTO dbdate VALUES ('{datetime.now()}')")
+    if db_updated:
+        query_db("DELETE FROM dbdate")
+        query_db(f"INSERT INTO dbdate VALUES ('{datetime.now()}')")
 
 
     db = get_db()
