@@ -1,18 +1,20 @@
 import sqlite3
+import requests
+from datetime import datetime
 from flask import Flask
 from flask import g
 from flask import render_template
 from flask import url_for
 
 DATABASE = 'peering.db'
+DB_SCHEMA = 'schema.sql'
+API_URL = 'https://www.peeringdb.com/api/'
 
 app = Flask(__name__)
 
 
 @app.route("/")
 def index():
-
-    cur = get_db().cursor()
     
     r = query_db("SELECT count(*) AS total_ixs FROM ix", one=True)
     total_ixs = r['total_ixs']
@@ -47,18 +49,19 @@ def index():
         ORDER BY peer_count DESC
         LIMIT 20
     """)
+
+    dbtime = query_db("SELECT lastmodified from dbdate", one=True)['lastmodified']
     
     return render_template("index.html", total_ixs=total_ixs, 
                                          total_nets=total_nets, 
                                          total_peerings=total_peerings, 
                                          total_speed=total_speed,
                                          top_nets=top_nets,
-                                         top_ixs=top_ixs)
+                                         top_ixs=top_ixs,
+                                         dbtime=dbtime)
 
 @app.route("/ix/")
 def ix():
-
-    cur = get_db().cursor()
 
     # num ix
     r = query_db("SELECT count(*) AS total_ixs FROM ix", one=True)
@@ -81,8 +84,11 @@ def ix():
     for row in all_ixs:
         row['total_speed']=format_speed(row['total_speed'])
 
+    dbtime = query_db("SELECT lastmodified from dbdate", one=True)['lastmodified']
+
     return render_template("ix.html", total_ixs=total_ixs,
-                                      all_ixs=all_ixs)
+                                      all_ixs=all_ixs,
+                                      dbtime=dbtime)
 
 @app.route("/ix/<int:ix_id>")
 def ix_id(ix_id):
@@ -114,13 +120,14 @@ def ix_id(ix_id):
     for row in ix_peerings:
         row['speed']=format_speed(row['speed'])
 
+    dbtime = query_db("SELECT lastmodified from dbdate", one=True)['lastmodified']
+
     return render_template("ix_id.html", ix_info=ix_info,
-                                         ix_peerings=ix_peerings) 
+                                         ix_peerings=ix_peerings,
+                                         dbtime=dbtime) 
 
 @app.route("/net/")
 def net():
-
-    cur = get_db().cursor()
 
     # num net
     r = query_db("SELECT count(*) AS total_nets FROM net", one=True)
@@ -143,8 +150,11 @@ def net():
     for row in all_nets:
         row['total_speed']=format_speed(row['total_speed'])
 
+    dbtime = query_db("SELECT lastmodified from dbdate", one=True)['lastmodified']
+
     return render_template("net.html", total_nets=total_nets,
-                                       all_nets=all_nets)
+                                       all_nets=all_nets,
+                                       dbtime=dbtime)
 
 @app.route("/net/<int:asn>")
 def net_asn(asn):
@@ -189,9 +199,75 @@ def net_asn(asn):
     for row in net_peers:
         row['speed']=format_speed(row['speed'])
 
+    dbtime = query_db("SELECT lastmodified from dbdate", one=True)['lastmodified']
+
     return render_template("net_asn.html", net_info=net_info,
                                            net_region=net_region,
-                                           net_peers=net_peers,)
+                                           net_peers=net_peers,
+                                           dbtime=dbtime)
+
+
+@app.route('/refresh')
+def populate_db():
+    init_db()
+
+    # Get all internet exchanges
+    ix_r = requests.get(API_URL+"ix").json()
+    query_db("DELETE FROM ix")
+    for ix in ix_r['data']:
+        query_db(f"""
+            INSERT INTO ix VALUES (
+                {ix['id']},
+                '{ix['name'].replace("'","")}',
+                {ix['net_count']},
+                '{ix['region_continent'].replace("'","")}',
+                '{ix['country'].replace("'","")}'
+            )
+        """)
+
+    # Get all NETs (ASNs)
+    net_r = requests.get("https://www.peeringdb.com/api/net").json()
+    query_db("DELETE FROM net")
+    for net in net_r['data']:
+        query_db(f"""
+            INSERT INTO net VALUES (
+                {net['id']}, 
+               '{net['name'].replace("'","")}', 
+                {net['asn']}
+            )
+        """)
+
+    # Get all IX Peers
+    peer_r = requests.get("https://www.peeringdb.com/api/netixlan").json()
+    query_db("DELETE FROM netixlan")
+    for netixlan in peer_r['data']:
+        query_db(f"""
+            INSERT INTO netixlan VALUES (
+                {netixlan['id']},
+                {netixlan['net_id']},
+                {netixlan['ix_id']},
+               '{netixlan['name'].replace("'","")}',
+                {netixlan['speed']},
+               '{netixlan['ipaddr4']}',
+               '{netixlan['ipaddr6']}'
+            )
+        """)
+
+    query_db(f"INSERT INTO dbdate VALUES ('{datetime.now()}')")
+
+
+    db = get_db()
+    db.commit()
+    db.close()
+
+    stats = {
+        "ix": len(ix_r['data']),
+        "net": len(net_r['data']),
+        "peer": len(peer_r['data']),
+    }
+
+    return render_template("refresh.html", stats=stats, dbtime=datetime.now())
+
 
 def init_db():
     with app.app_context():
@@ -219,12 +295,18 @@ def close_connection(exception):
     if db is not None:
         db.close()
 
+def init_db():
+    with app.app_context():
+        db = get_db()
+        with app.open_resource(DB_SCHEMA, mode='r') as f:
+            db.cursor().executescript(f.read())
+        db.commit()
+
 def query_db(query, args=(), one=False):
     cur = get_db().execute(query, args)
     rv = cur.fetchall()
     cur.close()
     return (rv[0] if rv else None) if one else rv
-
 
 def format_speed(speed):
     if not speed:

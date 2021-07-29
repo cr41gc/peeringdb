@@ -1,21 +1,5 @@
 # PeeringDB Dashboard
 
-```
-TODO:
-
-Add # Countries to dashboard and Nets
-Make Tables Sortable
-Native DB population and refresh
-
-Unit Tests
-Deploy
-
-Other Ideas:
-Region/Country Pages
-
-```
-
-
 This project is a simple exercise in displaying information from peeringdb.org/api.
 
 It was my attempt to practice flask, python, sqlite, html, css, etc. It's been awhile since I built a web app!

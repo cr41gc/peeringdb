@@ -22,3 +22,7 @@ CREATE TABLE IF NOT EXISTS netixlan (
     ipaddr4 TEXT,
     ipaddr6 TEXT
 );
+
+CREATE TABLE IF NOT EXISTS dbdate (
+    lastmodified TEXT
+);
